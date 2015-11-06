@@ -195,7 +195,7 @@ class FileUpload {
   public function processAll() {
     $content_range = $this->getContentRange();
     $size          = $this->getSize();
-    $this->files   = array();
+    $files         = array();
     $upload        = $this->upload;
 
     if($this->logger) {
@@ -214,18 +214,18 @@ class FileUpload {
           continue;
         }
 
-        $this->files[] = $this->process(
-          $tmp_name,
-          $upload['name'][$index],
-          $size ? $size : $upload['size'][$index],
-          $upload['type'][$index],
-          $upload['error'][$index],
+        $files[] = $this->process(
+                                  $this->stripFieldName($tmp_name),
+                                  $this->stripFieldName($upload['name'][$index]),
+                                  $size ? $size : $this->stripFieldName($upload['size'][$index]),
+                                  $this->stripFieldName($upload['type'][$index]),
+                                  $this->stripFieldName($upload['error'][$index]),
           $index,
           $content_range
         );
       }
     } else if($upload && !empty($upload['tmp_name'])) {
-      $this->files[] = $this->process(
+      $files[] = $this->process(
         $upload['tmp_name'],
         $upload['name'],
         $size ? $size : (isset($upload['size']) ? $upload['size'] : $this->getContentLength()),
@@ -234,14 +234,18 @@ class FileUpload {
         0,
         $content_range
       );
-    } else if($upload && $upload['error'] != 0) {
-        $file = new File();
-        $file->error = $this->messages[$upload['error']];
-        $file->error_code = $upload['error'];
-        $this->files[] = $file;
     }
 
-    return array($this->files, $this->getNewHeaders($this->files, $content_range));
+    return array($files, $this->getNewHeaders($files, $content_range));
+  }
+  
+  protected function stripFieldName($attribute)
+  {
+      if (is_array($attribute)) {
+          return array_shift($attribute);
+      } else {
+          return $attribute;
+      }
   }
 
   /**
